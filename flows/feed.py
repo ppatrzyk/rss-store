@@ -1,4 +1,3 @@
-import itertools
 import feedparser
 from prefect import flow, task
 
@@ -22,7 +21,7 @@ def query_feed(feed):
     print(f"entries {entries}")
     return entries
 
-@task
+@task(retries=4)
 def save_entries(entries):
     """
     Write entries to db
@@ -33,12 +32,19 @@ def save_entries(entries):
     return True
 
 @flow(log_prints=True)
-def update():
+def update(feed):
+    """
+    Flow for updating single feed
+    """
+    entries = query_feed(feed)
+    _save = save_entries(entries)
+    return True
+
+@flow(log_prints=True)
+def update_all():
     """
     Main flow for updating rss feeds
     """
     feeds = get_feed_list()
-    responses = tuple(query_feed(feed) for feed in feeds)
-    entries = tuple(itertools.chain(*responses))
-    save_entries(entries)
+    _update = tuple(update(feed) for feed in feeds)
     return True

@@ -21,7 +21,7 @@ pull:
 deployments:
 - # deploy definition
   name: get_feed_deployment
-  entrypoint: /flows/feed.py:update
+  entrypoint: /flows/feed.py:update_all
   version: "0.1"
   tags: []
   description: "get rss feed"

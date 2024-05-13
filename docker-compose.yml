@@ -41,10 +41,7 @@ services:
 
   agent:
     image: rssagent:latest
-    # entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "worker", "start", "-p", "my-pool", "-n", "my-worker", "-q", "my-queue"]
-    # entrypoint: ["python3", "/opt/prefect/get_feed.py"]
     volumes:
-      # - ./flows/get_feed.py:/opt/prefect/get_feed.py
       - ./flows/:/flows
     environment:
       - PREFECT_API_URL=http://server:4200/api
