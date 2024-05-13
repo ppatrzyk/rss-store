@@ -1,1 +1,5 @@
-# prefect-pipeline
+# rss-store
+
+```
+docker build . -t rssagent:latest
+```
