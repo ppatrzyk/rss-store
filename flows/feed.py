@@ -1,8 +1,14 @@
+import asyncio
 import feedparser
+import os
 from prefect import flow, task
+from sqlalchemy.ext.asyncio import create_async_engine
+
+db_conn_str = os.environ["RSS_DB"]
+engine = create_async_engine(db_conn_str)
 
 @task
-def get_feed_list():
+async def get_feed_list():
     """
     Get feed URLs from db
     """
@@ -11,7 +17,7 @@ def get_feed_list():
     return feeds
 
 @task(retries=4)
-def query_feed(feed):
+async def query_feed(feed):
     """
     Get new entries for a feed
     """
@@ -22,7 +28,7 @@ def query_feed(feed):
     return entries
 
 @task(retries=4)
-def save_entries(entries):
+async def save_entries(entries):
     """
     Write entries to db
     """
@@ -32,19 +38,20 @@ def save_entries(entries):
     return True
 
 @flow(log_prints=True)
-def update(feed):
+async def update(feed):
     """
     Flow for updating single feed
     """
-    entries = query_feed(feed)
-    _save = save_entries(entries)
+    entries = await query_feed(feed)
+    _save = await save_entries(entries)
     return True
 
 @flow(log_prints=True)
-def update_all():
+async def update_all():
     """
     Main flow for updating rss feeds
     """
-    feeds = get_feed_list()
-    _update = tuple(update(feed) for feed in feeds)
+    feeds = await get_feed_list()
+    feed_update_tasks = tuple(update(feed) for feed in feeds)
+    await asyncio.gather(*feed_update_tasks)
     return True

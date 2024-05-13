@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:16.2
     restart: always
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -28,6 +30,7 @@ services:
       - PREFECT_API_URL=http://127.0.0.1:4200/api
       - PREFECT_SERVER_API_HOST=0.0.0.0
       - PREFECT_API_DATABASE_CONNECTION_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/prefect
+      - RSS_DB=postgresql+asyncpg://postgres:postgres@postgres:5432/rss
     ports:
       - 4200:4200
     healthcheck:
@@ -46,6 +49,7 @@ services:
     environment:
       - PREFECT_API_URL=http://server:4200/api
       - PREFECT_LOCAL_STORAGE_PATH=/flows
+      - RSS_DB=postgresql+asyncpg://postgres:postgres@postgres:5432/rss
     depends_on:
       postgres:
         condition: service_healthy
