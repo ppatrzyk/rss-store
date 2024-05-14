@@ -1,4 +1,4 @@
-FROM prefecthq/prefect:2.18-python3.12
+FROM python:3.11.9
 
 COPY ./requirements.txt /rss_requirements.txt
 COPY ./worker_run.sh /worker_run.sh

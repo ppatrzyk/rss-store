@@ -5,6 +5,7 @@ services:
     image: postgres:16.2
     restart: always
     volumes:
+      - ./postgres:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     environment:
       - POSTGRES_USER=postgres
