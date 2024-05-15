@@ -9,6 +9,8 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'rss')\gexec
 create table if not exists source (
     id varchar(255),
     url text not null,
+    etag varchar(255),
+    modified varchar(255),
     primary key(id)
 );
 
@@ -22,6 +24,7 @@ create table if not exists content (
     title text,
     content text,
     primary key(id),
+    unique (source_id, external_id),
     constraint fk_source
         foreign key(source_id) 
             references source(id)

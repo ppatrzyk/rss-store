@@ -16,8 +16,8 @@ async def get_feed_list():
     feeds = []
     conn = await asyncpg.connect(db_conn_str)
     async with conn.transaction():
-        async for r in conn.cursor('select id, url from source'):
-            feeds.append({"id": r[0], "url": r[1]})
+        async for r in conn.cursor('select id, url, etag, modified from source'):
+            feeds.append({"id": r[0], "url": r[1], "etag": r[2], "modified": r[3]})
     await conn.close()
     return feeds
 
@@ -27,8 +27,11 @@ async def query_feed(feed):
     Get new entries for a feed
     """
     source_id = feed.get("id")
-    url = feed.get("url")
-    response = feedparser.parse(url)
+    response = feedparser.parse(
+        feed.get("url"),
+        etag=feed.get("etag"),
+        modified=feed.get("modified")
+    )
     print(f"querying {source_id}")
     return source_id, response
 
@@ -37,13 +40,19 @@ async def save_entries(source_id, response):
     """
     Write entries to db
     """
-    query = """
+    insert_query = """
         insert into
         content(source_id, publication_date, url, external_id, title, content)
         values ($1, $2, $3, $4, $5, $6)
+        on conflict (source_id, external_id) do nothing
+    """
+    update_query = """
+        update source
+        set etag = $1, modified = $2
+        where id = $3
     """
     entries = []
-    for entry in response.entries:
+    for entry in response.get("items"):
         publication_date = None
         try:
             publication_date = datetime.fromtimestamp(time.mktime(entry.published_parsed))
@@ -52,14 +61,16 @@ async def save_entries(source_id, response):
         row = (
             source_id,
             publication_date,
-            entry.link,
-            entry.id,
-            entry.title,
-            entry.summary
+            entry.get("link"),
+            entry.get("guid") or entry.get("link"),
+            entry.get("title"),
+            entry.get("description")
         )
         entries.append(row)
     conn = await asyncpg.connect(db_conn_str)
-    _result = await conn.executemany(query, entries)
+    async with conn.transaction():
+        await conn.executemany(insert_query, entries)
+        await conn.execute(update_query, response.get("etag"), response.get("modified"), source_id)
     await conn.close()
     print(f"saving {len(entries)} entries for {source_id}")
     return True
@@ -70,7 +81,7 @@ async def update(feed):
     Flow for updating single feed
     """
     source_id, response = await query_feed(feed)
-    _save = await save_entries(source_id, response)
+    await save_entries(source_id, response)
     return True
 
 @flow(log_prints=True)
