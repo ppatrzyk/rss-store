@@ -63,6 +63,7 @@ services:
     image: mlagent:latest
     volumes:
       - ./flows/:/flows
+      - ./mlflow/:/artifacts
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - PREFECT_LOCAL_STORAGE_PATH=/flows
@@ -86,4 +87,5 @@ services:
       postgres:
         condition: service_healthy
 
+# TODO check if actually connects to postgres
 # --backend-store-uri ${MLFLOW_DB}

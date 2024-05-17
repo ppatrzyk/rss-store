@@ -40,12 +40,23 @@ prefect deploy --prefect-file /flows/prefect.yaml
 testing with exposed postgres:
 ```
 db_conn_str = "postgresql://postgres:postgres@localhost:15432/rss"
-rows = []
+source_id = []
+content = []
 async def get_data():
     conn = await asyncpg.connect(db_conn_str)
     async with conn.transaction():
         async for r in conn.cursor("select source_id, content from content"):
-            rows.append({"source_id": r[0], "content": r[1], })
+            source_id.append(r[0])
+            content.append(r[1])
     await conn.close()
     return True
+
+asyncio.get_event_loop().run_until_complete(get_data())
 ```
+
+todo 
+postgres backend test
+serve
+https://mlflow.org/docs/latest/model-registry.html#serving-an-mlflow-model-from-model-registry
+update dynamically which one is served?
+how to access the same vectorizer (tfidf) to transform unseen data for predict
