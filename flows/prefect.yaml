@@ -19,17 +19,27 @@ pull:
 
 # the deployments section allows you to provide configuration for deploying flows
 deployments:
-- # deploy definition
+- # update rss feed
   name: get_feed_deployment
   entrypoint: /flows/feed.py:update_all
   version: "0.1"
   tags: []
   description: "get rss feed"
   schedule: {cron: "* * * * *"}
-  # flow_name: get_feed
   parameters: {}
   work_pool:
-    name: my-pool
-    work_queue_name: my-queue
+    name: rss-pool
+    work_queue_name: rss-queue
     job_variables: {}
-  
+- # ml train
+  name: train model
+  entrypoint: /flows/ml.py:train
+  version: "0.1"
+  tags: []
+  description: "train model"
+  schedule: {cron: "* * * * *"}
+  parameters: {}
+  work_pool:
+    name: ml-pool
+    work_queue_name: ml-queue
+    job_variables: {}

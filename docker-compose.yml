@@ -11,13 +11,15 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=prefect
+    ports: # TODO remove after local tests
+      - 15432:5432
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  server:
+  prefect:
     image: prefecthq/prefect:2.18-python3.12
     restart: always
     entrypoint: ["/opt/prefect/entrypoint.sh", "prefect", "server", "start"]
@@ -43,16 +45,45 @@ services:
       postgres:
         condition: service_healthy
 
-  agent:
+  rssagent:
     image: rssagent:latest
     volumes:
       - ./flows/:/flows
     environment:
-      - PREFECT_API_URL=http://server:4200/api
+      - PREFECT_API_URL=http://prefect:4200/api
       - PREFECT_LOCAL_STORAGE_PATH=/flows
       - RSS_DB=postgresql://postgres:postgres@postgres:5432/rss
     depends_on:
       postgres:
         condition: service_healthy
-      server:
+      prefect:
         condition: service_healthy
+
+  mlagent:
+    image: mlagent:latest
+    volumes:
+      - ./flows/:/flows
+    environment:
+      - PREFECT_API_URL=http://prefect:4200/api
+      - PREFECT_LOCAL_STORAGE_PATH=/flows
+      - RSS_DB=postgresql://postgres:postgres@postgres:5432/rss
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prefect:
+        condition: service_healthy
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.12.2
+    volumes:
+      - ./mlflow/:/artifacts
+    environment:
+      - MLFLOW_TRACKING_URI=postgresql://postgres:postgres@postgres:5432/mlflow
+    command: mlflow server --host 0.0.0.0 --port 8080 --default-artifact-root /artifacts --artifacts-destination /artifacts
+    ports:
+      - 8080:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+# --backend-store-uri ${MLFLOW_DB}

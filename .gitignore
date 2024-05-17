@@ -1,4 +1,6 @@
 **/__pycache__
 rssvenv
+mlflowvenv
 data/
 postgres/
+mlflow/
