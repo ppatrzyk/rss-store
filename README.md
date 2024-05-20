@@ -1,10 +1,12 @@
 # rss-store
 
-System for gathering rss feed entries and training/serving ML classification model. Written with python ([prefect](https://github.com/PrefectHQ/prefect)) and PostgreSQL.
+System for gathering rss feed entries and training/serving ML classification model. The model takes as input text sample and predicts from which source does it come from.
+
+Written using Python ([prefect](https://github.com/PrefectHQ/prefect), [mlflow](https://github.com/mlflow/mlflow)) and PostgreSQL.
 
 ## Architecture
 
-The system continuously updates data source, retrains model on fresh data and redeploys prediction service one new model becomes available.
+The system continuously updates data source, retrains model on fresh data and redeploys prediction service once new model becomes available.
 
 ![chart](chart.drawio.png)
 
@@ -25,8 +27,7 @@ docker build . -t mlagent:latest
 ```
 mkdir postgres
 mkdir mlflow
-mkdir mlflow/runs
-mkdir mlflow/artifacts
+mkdir mlflow/{artifacts,runs}
 ```
 
 3. Run
@@ -42,6 +43,8 @@ Connect to postgres instance (`rss` db) and update `source` table.
 Sample query in [sample_rss.sql](sample_rss.sql).
 
 5. Trigger tasks
+
+Need to be run from one of the prefect worker containers (`rssagent` / `mlagent`)
 
 ```
 prefect deploy --prefect-file /flows/prefect.yaml
