@@ -1,9 +1,6 @@
 -- if future changes, run in migrations
 
 -- https://stackoverflow.com/a/18389184
-SELECT 'create database mlflow'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'mlflow')\gexec
-
 SELECT 'create database rss'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'rss')\gexec
 

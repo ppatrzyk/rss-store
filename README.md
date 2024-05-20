@@ -1,6 +1,12 @@
 # rss-store
 
-System for gathering rss feed entries. Written with python ([prefect](https://github.com/PrefectHQ/prefect)) and PostgreSQL.
+System for gathering rss feed entries and training/serving ML classification model. Written with python ([prefect](https://github.com/PrefectHQ/prefect)) and PostgreSQL.
+
+## Architecture
+
+The system continuously updates data source, retrains model on fresh data and redeploys prediction service one new model becomes available.
+
+![chart](chart.drawio.png)
 
 ## Instructions
 
@@ -14,49 +20,43 @@ docker build . -t rssagent:latest
 docker build . -t mlagent:latest
 ```
 
-2. Run
+2. Create volumes
+
+```
+mkdir postgres
+mkdir mlflow
+mkdir mlflow/runs
+mkdir mlflow/artifacts
+```
+
+3. Run
 
 ```
 docker-compose up -d
 ```
 
-Prefect dashboard is exposed at: http://localhost:4200/dashboard
+4. Add rss sources into postgres instance
 
-3. Add rss sources into postgres instance
+Connect to postgres instance (`rss` db) and update `source` table.
 
-```
--- e.g.
-insert into source(id, url) values ('onet', 'https://wiadomosci.onet.pl/.feed'), ('wpolityce', 'https://feeds.feedburner.com/wPolitycepl'), ('fakt', 'https://www.fakt.pl/rss');
-```
+Sample query in [sample_rss.sql](sample_rss.sql).
 
-4. Trigger tasks
+5. Trigger tasks
 
 ```
 prefect deploy --prefect-file /flows/prefect.yaml
 ```
 
+## Exposed services
 
+| Service | link |
+| --- | --- |
+| Prefect dashboard | http://localhost:4200/dashboard |
+| mlflow dashboard | http://localhost:8080 |
+| ml flow predict API | http://localhost:5000 |
 
-testing with exposed postgres:
+Makaing prediction against latest model:
+
 ```
-db_conn_str = "postgresql://postgres:postgres@localhost:15432/rss"
-source_id = []
-content = []
-async def get_data():
-    conn = await asyncpg.connect(db_conn_str)
-    async with conn.transaction():
-        async for r in conn.cursor("select source_id, content from content"):
-            source_id.append(r[0])
-            content.append(r[1])
-    await conn.close()
-    return True
-
-asyncio.get_event_loop().run_until_complete(get_data())
+curl http://127.0.0.1:5000/invocations -H 'Content-Type: application/json' -d '{"inputs": ["test tekst 1", "test tekst 2"]}'
 ```
-
-todo 
-postgres backend test
-serve
-https://mlflow.org/docs/latest/model-registry.html#serving-an-mlflow-model-from-model-registry
-update dynamically which one is served?
-how to access the same vectorizer (tfidf) to transform unseen data for predict

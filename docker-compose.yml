@@ -63,7 +63,8 @@ services:
     image: mlagent:latest
     volumes:
       - ./flows/:/flows
-      - ./mlflow/:/artifacts
+      # necessary for restarting ML predict server
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PREFECT_API_URL=http://prefect:4200/api
       - PREFECT_LOCAL_STORAGE_PATH=/flows
@@ -77,15 +78,16 @@ services:
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.12.2
     volumes:
-      - ./mlflow/:/artifacts
-    environment:
-      - MLFLOW_TRACKING_URI=postgresql://postgres:postgres@postgres:5432/mlflow
-    command: mlflow server --host 0.0.0.0 --port 8080 --default-artifact-root /artifacts --artifacts-destination /artifacts
+      - ./mlflow/runs:/mlruns
+      - ./mlflow/artifacts:/mlartifacts
+    command: mlflow server --host 0.0.0.0 --port 8080
     ports:
       - 8080:8080
-    depends_on:
-      postgres:
-        condition: service_healthy
 
-# TODO check if actually connects to postgres
-# --backend-store-uri ${MLFLOW_DB}
+  mlpredictserver:
+    image: mlagent:latest
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:8080
+    command: mlflow models serve --no-conda -m models:/rss_model/latest -h 0.0.0.0 -p 5000
+    ports:
+      - 5000:5000
